@@ -3,7 +3,8 @@
             [doplarr.backends.overseerr.impl :as overseerr]
             [doplarr.storage :as storage]
             [doplarr.discord :as discord]
-            [doplarr.utils :as utils]
+            [doplarr.state :as state]
+            [discljord.messaging :as m]
             [taoensso.timbre :refer [info]]))
 
 (defn check-request-status []
@@ -12,7 +13,15 @@
       (doseq [request requests]
         (let [is-available (a/<! (overseerr/check-availability (:item-id request)))]
           (when is-available
-            (discord/notify-user (:user-id request) (:item-details request))
+            (let [payload (:item-details request)
+                  user-id (:user-id request)
+                  media-type (:media-type payload)]
+              (m/create-message
+               (:discord/channel-id @state/config)
+               (discord/request-available-plain payload media-type user-id))
+              (m/create-message
+               (:discord/channel-id @state/config)
+               (discord/request-available-embed payload user-id)))
             (storage/remove-request request)
             (info "Notified user" (:user-id request) "about availability of" (:item-id request))))))))
 

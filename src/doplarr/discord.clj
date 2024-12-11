@@ -151,14 +151,19 @@
   {:content (str "<@" user-id "> has requested:")
    :embeds [(request-embed embed-data)]})
 
+(defn request-available-plain [payload media-type user-id]
+  {:content
+   (str "<@" user-id ">, your requested item `"
+        (name media-type) " `" (:title payload) " (" (:year payload) ")"
+        "` is now available!")})
+
+(defn request-available-embed [embed-data user-id]
+  {:content (str "<@" user-id ">'s request is now available:")
+   :embeds [(request-embed embed-data)]})
+
 ;; Discljord Utilities
 (defn register-commands [media-types bot-id messaging guild-id]
   (->> @(m/bulk-overwrite-guild-application-commands!
          messaging bot-id guild-id
          [(request-command media-types)])
        (else #(fatal % "Error in registering commands"))))
-
-(defn notify-user [user-id item-details]
-  (m/create-message
-   (:discord/channel-id @state/config)
-   {:content (str "Hey <@" user-id ">, your requested item is now available: " (:title item-details))}))
