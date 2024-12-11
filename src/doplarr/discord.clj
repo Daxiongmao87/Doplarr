@@ -151,15 +151,6 @@
   {:content (str "<@" user-id "> has requested:")
    :embeds [(request-embed embed-data)]})
 
-<<<<<<< Updated upstream
-(defn request-available-plain [payload media-type user-id]
-  {:content
-   (str "<@" user-id ">, your requested item `"
-        (name media-type) " `" (:title payload) " (" (:year payload) ")"
-        "` is now available!")})
-
-(defn request-available-embed [embed-data user-id]
-=======
 (defn request-update-plain [payload media-type user-id]
   {:content
    (str "<@" user-id "> your requested item `"
@@ -167,7 +158,6 @@
         "` is now available!")})
 
 (defn request-update-embed [embed-data user-id]
->>>>>>> Stashed changes
   {:content (str "<@" user-id ">'s request is now available:")
    :embeds [(request-embed embed-data)]})
 
