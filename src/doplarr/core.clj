@@ -9,6 +9,8 @@
    [doplarr.discord :as discord]
    [doplarr.interaction-state-machine :as ism]
    [doplarr.state :as state]
+   [doplarr.storage :as storage]
+   [doplarr.scheduler :as scheduler]
    [taoensso.timbre :refer [debug fatal info] :as timbre]
    [taoensso.timbre.tools.logging :as tlog])
   (:gen-class))
@@ -27,9 +29,7 @@
   (debug "Received interaction")
   (let [interaction (discord/interaction-data data)]
     (case (:type interaction)
-      ; Slash commands start our request sequence
       :application-command (ism/start-interaction! interaction)
-      ; Message components continue the request until they are complete or failed
       :message-component (ism/continue-interaction! interaction))))
 
 ; Once we receive a ready event, grab our bot-id
@@ -59,11 +59,12 @@
                     :event event-ch
                     :messaging messaging-ch}]
     (reset! state/discord init-state)
-    (try (e/message-pump! event-ch handle-event!)
-         (catch Exception e (fatal e "Exception thrown from event handler"))
-         (finally
-           (m/stop-connection! messaging-ch)
-           (a/close!           event-ch)))))
+    (try
+      (e/message-pump! event-ch handle-event!)
+      (catch Exception e (fatal e "Exception thrown from event handler"))
+      (finally
+        (m/stop-connection! messaging-ch)
+        (a/close! event-ch)))))
 
 (defn setup-config! []
   (reset! state/config (config/valid-config (load-env)))
@@ -72,10 +73,14 @@
 
 (defn startup! []
   (setup-config!)
+  (storage/ensure-db)
+  (info "Starting Scheduler...")
+  (scheduler/start-scheduler)
+  (info "Starting Doplarr...")
   (start-bot!))
 
-; Program Entry Point
 (defn -main
   [& _]
   (startup!)
   (shutdown-agents))
+

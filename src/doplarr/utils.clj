@@ -110,3 +110,4 @@
   (->> (from-camel resp)
        (map #(set/rename-keys % {:label :name}))
        (#(conj % {:name "No Tag" :id -1}))))
+

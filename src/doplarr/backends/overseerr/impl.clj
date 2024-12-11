@@ -6,6 +6,7 @@
    [doplarr.state :as state]
    [doplarr.utils :as utils]
    [fmnoise.flow :as flow :refer [else then]]
+   [doplarr.storage :as storage]
    [taoensso.timbre :refer [fatal]]))
 
 (def base-url (delay (str (:overseerr/url @state/config) "/api/v1")))
@@ -114,3 +115,4 @@
       users
       (let [id (first ids)]
         (recur (rest ids) (assoc users (a/<! (discord-id id)) id))))))
+

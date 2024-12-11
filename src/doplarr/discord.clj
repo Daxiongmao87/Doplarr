@@ -5,8 +5,9 @@
    [com.rpl.specter :as s]
    [discljord.messaging :as m]
    [doplarr.utils :as utils]
+   [doplarr.state :as state]
    [fmnoise.flow :as flow :refer [else]]
-   [taoensso.timbre :refer [fatal]]))
+   [taoensso.timbre :refer [fatal info]]))
 
 (defn request-command [media-types]
   {:name "request"
@@ -147,6 +148,18 @@
 
 (defn request-performed-embed [embed-data user-id]
   {:content (str "<@" user-id "> has requested:")
+   :embeds [(request-embed embed-data)]})
+
+(defn request-available-plain [request media-type user-id]
+  (let [title (-> request :item-details :title)
+        year (-> request :item-details :year)]
+    {:content
+     (str "<@" user-id ">, your requested "
+          media-type " `" title " (" year ")` is now available!")}))
+
+
+(defn request-available-embed [embed-data user-id]
+  {:content (str "<@" user-id ">'s request is now available:")
    :embeds [(request-embed embed-data)]})
 
 ;; Discljord Utilities

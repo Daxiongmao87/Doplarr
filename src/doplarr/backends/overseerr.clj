@@ -3,7 +3,9 @@
    [clojure.core.async :as a]
    [doplarr.backends.overseerr.impl :as impl]
    [doplarr.state :as state]
-   [doplarr.utils :as utils]))
+   [doplarr.utils :as utils]
+   [clojure.walk :as walk]
+   [taoensso.timbre :refer [info]]))
 
 (defn search [term media-type]
   (let [type (impl/media-type media-type)]
@@ -41,13 +43,17 @@
 
 (defn request [payload media-type]
   (a/go
-    (let [{:keys [format id season season-count discord-id]} payload
+    (let [{:keys [format id season season-count discord-id channel-id]} payload ;; Extract channel-id
           {:overseerr/keys [default-id]} @state/config
+          ;; Retrieve details for the given media ID
           details (a/<! (impl/details id media-type))
+          ;; Retrieve Discord user ID mapping
           ovsr-id ((a/<! (impl/discord-users)) discord-id)
+          ;; Determine media status
           status (impl/media-status details media-type
                                     :is-4k? (= format :4K)
                                     :season season)
+          ;; Build request body
           body (cond-> {:mediaType (impl/media-type media-type)
                         :mediaId id
                         :is4k (= format :4K)}
@@ -56,9 +62,39 @@
                         (if (= -1 season)
                           (into [] (range 1 (inc season-count)))
                           [season])))]
+      ;; Handle request submission or return the appropriate status
       (cond
         (contains? #{:unauthorized :pending :processing :available} status) status
         (and (nil? ovsr-id) (nil? default-id)) :unauthorized
         :else (a/<! (impl/POST "/request" {:form-params body
                                            :content-type :json
                                            :headers {"X-API-User" (str (or ovsr-id default-id))}}))))))
+
+(defn check-availability [request]
+  (a/go
+    (try
+      ;; Use the details function to get media details
+      (let [{:keys [item-id media-type]} request
+            details (a/<! (impl/details item-id media-type))] ;; Fetch details
+
+        ;; Check if the details were successfully retrieved
+        (if (nil? details)
+          (do
+            (println "Failed to retrieve media details.")
+            false)
+
+          ;; Retrieve mediaInfo and status from details
+          (let [media-info (:media-info details)
+                status (:status media-info)]
+
+            ;; Return true if status is 5, otherwise false
+            (if (= status 5)
+              (do
+                true)
+              (do
+                false)))))
+
+      (catch Exception e
+        (utils/log-on-error "Error checking availability for item" {:item-id (:item-id request) :error e})
+        false))))
+

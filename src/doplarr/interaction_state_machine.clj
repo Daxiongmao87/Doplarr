@@ -6,6 +6,7 @@
    [discljord.messaging :as m]
    [doplarr.discord :as discord]
    [doplarr.state :as state]
+   [doplarr.storage :as storage]
    [doplarr.utils :as utils :refer [log-on-error]]
    [fmnoise.flow :refer [else then]]
    [taoensso.timbre :refer [fatal info]]))
@@ -99,16 +100,37 @@
                                  (else #(fatal % "Error in message response"))))]
       (->>  (log-on-error
              (a/<!! ((utils/media-fn media-type "request")
-                     (assoc payload :format (keyword format) :discord-id user-id)
+                     (assoc payload :format (keyword format) :discord-id user-id :channel-id channel-id) ;; Include channel-id
                      media-type))
              "Exception from request")
             (then (fn [status]
                     (case status
                       :unauthorized (msg-resp "You are unauthorized to perform this request in the configured backend")
-                      :pending (msg-resp "This has already been requested and the request is pending")
-                      :processing (msg-resp "This is currently processing and should be available soon!")
+                      :pending (do
+                                 ;; Save the request in storage since it is pending
+                                 (storage/save-request {:discord-id user-id
+                                                        :channel-id channel-id ;; Save channel-id
+                                                        :item-id (:id payload)
+                                                        :item-details payload
+                                                        :media-type (name media-type)}) ;; Convert :movie to "movie"
+                                 (msg-resp "This has already been requested and the request is pending"))
+                      :processing (do
+                                    ;; Save the request in storage since it is processing
+                                    (storage/save-request {:discord-id user-id
+                                                           :channel-id channel-id ;; Save channel-id
+                                                           :item-id (:id payload)
+                                                           :item-details payload
+                                                           :media-type (name media-type)}) ;; Convert :movie to "movie"
+                                    (msg-resp "This is currently processing and should be available soon!"))
                       :available (msg-resp "This selection is already available!")
                       (do
+                        ;; Save the request in storage since it is performed
+                        (storage/save-request {:discord-id user-id
+                                               :channel-id channel-id ;; Save channel-id
+                                               :item-id (:id payload)
+                                               :item-details payload
+                                               :media-type (name media-type)}) ;; Convert :movie to "movie"
+                        (info "Request saved for user" user-id)
                         (info "Performing request for " payload)
                         (msg-resp "Request performed!")
                         (case (:discord/requested-msg-style @state/config)

@@ -22,6 +22,8 @@ RUN \
     tini \
     tzdata
 
+RUN mkdir /app/db
+
 COPY --from=builder /src/target/doplarr.jar ./
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["java","-jar","/app/doplarr.jar"]
