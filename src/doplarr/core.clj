@@ -8,8 +8,9 @@
    [doplarr.config :as config]
    [doplarr.discord :as discord]
    [doplarr.interaction-state-machine :as ism]
+   [doplarr.scheduler :as scheduler]
    [doplarr.state :as state]
-   [taoensso.timbre :refer [debug fatal info] :as timbre]
+   [taoensso.timbre :refer [debug fatal info]]
    [taoensso.timbre.tools.logging :as tlog])
   (:gen-class))
 
@@ -77,5 +78,7 @@
 ; Program Entry Point
 (defn -main
   [& _]
+  (info "Starting Doplarr...")
+  (scheduler/start-scheduler)
   (startup!)
   (shutdown-agents))

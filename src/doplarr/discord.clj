@@ -6,7 +6,8 @@
    [discljord.messaging :as m]
    [doplarr.utils :as utils]
    [fmnoise.flow :as flow :refer [else]]
-   [taoensso.timbre :refer [fatal]]))
+   [taoensso.timbre :refer [fatal]]
+   [doplarr.state :as state]))
 
 (defn request-command [media-types]
   {:name "request"
@@ -20,6 +21,7 @@
                           :name "query"
                           :description "Query"
                           :required true}]}))})
+
 
 (defn content-response [content]
   {:content content
@@ -155,3 +157,8 @@
          messaging bot-id guild-id
          [(request-command media-types)])
        (else #(fatal % "Error in registering commands"))))
+
+(defn notify-user [user-id item-details]
+  (m/create-message
+   (:discord/channel-id @state/config)
+   {:content (str "Hey <@" user-id ">, your requested item is now available: " (:title item-details))}))

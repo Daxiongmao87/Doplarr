@@ -6,7 +6,8 @@
    [doplarr.state :as state]
    [doplarr.utils :as utils]
    [fmnoise.flow :as flow :refer [else then]]
-   [taoensso.timbre :refer [fatal]]))
+   [taoensso.timbre :refer [fatal info]]
+   [doplarr.storage :as storage]))
 
 (def base-url (delay (str (:overseerr/url @state/config) "/api/v1")))
 (def api-key  (delay (:overseerr/api @state/config)))
@@ -114,3 +115,19 @@
       users
       (let [id (first ids)]
         (recur (rest ids) (assoc users (a/<! (discord-id id)) id))))))
+
+(defn request [payload _]
+  (a/go
+    (let [details (a/<! (if-let [id (:id payload)]
+                          (impl/get-from-id id)
+                          (impl/get-from-tvdb (:tvdb-id payload))))
+          status (impl/status details (:season payload))]
+      (storage/save-request {:user-id (:user-id payload)
+                             :item-id (:id details)
+                             :item-details details})
+      (info "Request saved for user" (:user-id payload)))))
+
+(defn check-availability [item-id]
+  (a/go
+    (let [response (a/<! (GET (str "/request/" item-id)))]
+      (= (:status response) "available"))))
