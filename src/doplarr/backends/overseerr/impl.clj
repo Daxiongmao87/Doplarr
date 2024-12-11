@@ -1,6 +1,10 @@
 (ns doplarr.backends.overseerr.impl
   (:require
    [clojure.core.async :as a]
+   [doplarr.state :as state]
+   [doplarr.sqlite :as sqlite]
+   [doplarr.discord :as discord]
+   [discljord.messaging :as m]
    [clojure.set :as set]
    [com.rpl.specter :as s]
    [doplarr.state :as state]
@@ -116,6 +120,7 @@
       (let [id (first ids)]
         (recur (rest ids) (assoc users (a/<! (discord-id id)) id))))))
 
+<<<<<<< Updated upstream
 (defn request [payload _]
   (a/go
     (let [details (a/<! (if-let [id (:id payload)]
@@ -127,7 +132,29 @@
                              :item-details details})
       (info "Request saved for user" (:user-id payload)))))
 
+=======
+>>>>>>> Stashed changes
 (defn check-availability [item-id]
   (a/go
     (let [response (a/<! (GET (str "/request/" item-id)))]
       (= (:status response) "available"))))
+<<<<<<< Updated upstream
+=======
+
+(defn monitor-requests []
+  (a/go
+    (let [requests (sqlite/get-requests)]
+      (doseq [request requests]
+        (let [{:keys [id user_id channel_id media_type title year]} request
+              available? (a/<! (check-availability id))]
+          (when available?
+            (sqlite/update-request-status id "available")
+            (m/create-message! (:messaging @state/discord) channel_id
+                               (discord/request-update-plain {:title title :year year} media_type user_id))))))))
+
+(defn start-monitoring []
+  (a/go-loop []
+    (monitor-requests)
+    (a/<! (a/timeout 3600000)) ; Check every hour
+    (recur)))
+>>>>>>> Stashed changes

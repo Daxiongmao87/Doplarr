@@ -2,6 +2,7 @@ FROM clojure:tools-deps-1.11.1.1435 as builder
 
 WORKDIR /src
 
+RUN echo "Build 1"
 # CACHING DEPS
 COPY  ./deps.edn ./
 RUN clojure -P

@@ -79,6 +79,9 @@
 (defn -main
   [& _]
   (info "Starting Doplarr...")
+<<<<<<< Updated upstream
   (scheduler/start-scheduler)
+=======
+>>>>>>> Stashed changes
   (startup!)
   (shutdown-agents))
