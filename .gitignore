@@ -9,3 +9,4 @@ pom.xml.asc
 .clj-kondo/
 target/
 docker-compose.yaml
+db/*

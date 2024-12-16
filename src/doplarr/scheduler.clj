@@ -13,20 +13,19 @@
     (let [{:keys [messaging]} @state/discord
           requests (storage/get-requests)]
       (doseq [request requests]
-        (let [is-available (a/<! (overseerr/check-availability request))]
+        (let [kw-request (update request :media-type #(if (string? %) (keyword %) %))
+              is-available (a/<! (overseerr/check-availability kw-request))]
           (when is-available
-            (let [discord-id (:discord-id request)
-                  channel-id (:channel-id request)
+            (let [discord-id (:discord-id kw-request)
+                  channel-id (:channel-id kw-request)
                   media-type (:media-type request)
-                  plain-content (discord/request-available-plain request media-type discord-id)]
+                  plain-content (discord/request-available-plain kw-request media-type discord-id)]
               (info "Processing request with channel ID:" channel-id)
-
               (when channel-id
-                (m/create-message! messaging channel-id plain-content)
-                (storage/remove-request request)
-                (info "Notified user" discord-id "about availability of" (:item-id request))))))))))
+                (m/create-message! messaging channel-id plain-content))
 
-
+              (storage/remove-request request)
+              (info "Notified user" discord-id "about availability of" (:item-id request)))))))))
 (defn start-scheduler []
   (a/go-loop []
     (check-request-status)

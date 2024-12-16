@@ -73,28 +73,21 @@
 (defn check-availability [request]
   (a/go
     (try
-      ;; Use the details function to get media details
       (let [{:keys [item-id media-type]} request
-            details (a/<! (impl/details item-id media-type))] ;; Fetch details
-
-        ;; Check if the details were successfully retrieved
+            ;; Convert the media-type keyword to the Overseerr-compatible string
+            resolved-media-type (impl/media-type media-type)
+            ;; Fetch the details for the given item using the resolved media-type
+            details (a/<! (impl/details item-id resolved-media-type))]
         (if (nil? details)
           (do
             (println "Failed to retrieve media details.")
             false)
-
-          ;; Retrieve mediaInfo and status from details
           (let [media-info (:media-info details)
                 status (:status media-info)]
-
             ;; Return true if status is 5, otherwise false
-            (if (= status 5)
-              (do
-                true)
-              (do
-                false)))))
-
+            (= status 5))))
       (catch Exception e
-        (utils/log-on-error "Error checking availability for item" {:item-id (:item-id request) :error e})
+        (utils/log-on-error "Error checking availability for item"
+                            {:item-id (:item-id request) :error e})
         false))))
 

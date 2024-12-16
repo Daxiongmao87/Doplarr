@@ -7,7 +7,7 @@
    [doplarr.utils :as utils]
    [fmnoise.flow :as flow :refer [else then]]
    [doplarr.storage :as storage]
-   [taoensso.timbre :refer [fatal]]))
+   [taoensso.timbre :refer [fatal info]]))
 
 (def base-url (delay (str (:overseerr/url @state/config) "/api/v1")))
 (def api-key  (delay (:overseerr/api @state/config)))
