@@ -30,5 +30,5 @@
 (defn start-scheduler []
   (a/go-loop []
     (check-request-status)
-    (a/<! (a/timeout 10000)) 
+    (a/<! (a/timeout 300000)) 
     (recur)))
